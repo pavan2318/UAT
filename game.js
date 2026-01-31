@@ -5,15 +5,16 @@ const restartBtn = document.getElementById("restart");
 const toggle = document.getElementById("toggle");
 const root = document.documentElement;
 
-let blocks = [];
-let current;
-let direction = 1;
-let speed = 2;
-let score = 0;
-let playing = true;
-let offsetY = 0;
-
 const BLOCK_HEIGHT = 28;
+
+let blocks;
+let current;
+let direction;
+let speed;
+let score;
+let playing;
+let offsetY;
+let initialized;
 
 function gameWidth() {
   return stack.clientWidth;
@@ -43,6 +44,7 @@ function update() {
   if (!playing) return;
 
   current.x += speed * direction;
+
   if (current.x <= 0 || current.x + current.width >= gameWidth()) {
     direction *= -1;
   }
@@ -53,7 +55,7 @@ function update() {
 }
 
 function drop() {
-  if (!playing) return;
+  if (!playing || !initialized || !current) return;
 
   if (!blocks.length) {
     blocks.push({ ...current });
@@ -81,11 +83,16 @@ function drop() {
   current.el.style.width = current.width + "px";
 
   blocks.push({ ...current });
+
   score++;
   scoreEl.textContent = score;
   speed += 0.15;
 
-  offsetY = Math.max(0, blocks.length * BLOCK_HEIGHT - stack.clientHeight / 2);
+  offsetY = Math.max(
+    0,
+    blocks.length * BLOCK_HEIGHT - stack.clientHeight / 2
+  );
+
   stack.style.transform = `translateY(${-offsetY}px)`;
 
   spawn();
@@ -99,20 +106,24 @@ function end() {
 function reset() {
   stack.innerHTML = "";
   blocks = [];
-  score = 0;
-  speed = 2;
+  current = null;
   direction = 1;
-  offsetY = 0;
+  speed = 2;
+  score = 0;
   playing = true;
+  offsetY = 0;
+  initialized = false;
 
   scoreEl.textContent = "0";
   stack.style.transform = "translateY(0)";
   overlay.classList.add("hidden");
 
   spawn();
+  initialized = true;
   update();
 }
 
+/* INPUT */
 document.addEventListener("click", drop);
 document.addEventListener("keydown", e => {
   if (e.code === "Space") drop();
@@ -120,18 +131,20 @@ document.addEventListener("keydown", e => {
 
 restartBtn.onclick = reset;
 
-// Dark / Light toggle
-toggle.onclick = () => {
-  const dark = root.getAttribute("data-theme") === "dark";
-  root.setAttribute("data-theme", dark ? "light" : "dark");
-  toggle.textContent = dark ? "Dark" : "Light";
-};
+/* THEME */
+root.setAttribute("data-theme", "light");
+toggle.textContent = "Dark";
 
-// system default
 if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
   root.setAttribute("data-theme", "dark");
   toggle.textContent = "Light";
 }
 
-spawn();
-update();
+toggle.onclick = () => {
+  const isDark = root.getAttribute("data-theme") === "dark";
+  root.setAttribute("data-theme", isDark ? "light" : "dark");
+  toggle.textContent = isDark ? "Dark" : "Light";
+};
+
+/* START */
+reset();
