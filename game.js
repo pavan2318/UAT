@@ -2,6 +2,8 @@ const stack = document.getElementById("stack");
 const scoreEl = document.getElementById("score");
 const overlay = document.getElementById("overlay");
 const restartBtn = document.getElementById("restart");
+const toggle = document.getElementById("toggle");
+const root = document.documentElement;
 
 let blocks = [];
 let current;
@@ -9,9 +11,13 @@ let direction = 1;
 let speed = 2;
 let score = 0;
 let playing = true;
+let offsetY = 0;
 
-const GAME_WIDTH = () => stack.clientWidth;
 const BLOCK_HEIGHT = 28;
+
+function gameWidth() {
+  return stack.clientWidth;
+}
 
 function createBlock(width, y) {
   const el = document.createElement("div");
@@ -23,27 +29,26 @@ function createBlock(width, y) {
 }
 
 function spawn() {
-  const width = blocks.length ? blocks[blocks.length - 1].width : GAME_WIDTH() * 0.8;
+  const width = blocks.length ? blocks.at(-1).width : gameWidth() * 0.75;
   const y = blocks.length * BLOCK_HEIGHT;
 
   current = {
     el: createBlock(width, y),
     width,
-    x: (GAME_WIDTH() - width) / 2
+    x: (gameWidth() - width) / 2
   };
-
-  current.el.classList.add("moving");
 }
 
 function update() {
   if (!playing) return;
 
   current.x += speed * direction;
-  if (current.x <= 0 || current.x + current.width >= GAME_WIDTH()) {
+  if (current.x <= 0 || current.x + current.width >= gameWidth()) {
     direction *= -1;
   }
 
   current.el.style.left = current.x + "px";
+
   requestAnimationFrame(update);
 }
 
@@ -58,7 +63,7 @@ function drop() {
     return;
   }
 
-  const prev = blocks[blocks.length - 1];
+  const prev = blocks.at(-1);
   const overlap = Math.min(
     current.x + current.width,
     prev.x + prev.width
@@ -74,13 +79,14 @@ function drop() {
 
   current.el.style.left = current.x + "px";
   current.el.style.width = current.width + "px";
-  current.el.classList.remove("moving");
 
   blocks.push({ ...current });
-
   score++;
   scoreEl.textContent = score;
   speed += 0.15;
+
+  offsetY = Math.max(0, blocks.length * BLOCK_HEIGHT - stack.clientHeight / 2);
+  stack.style.transform = `translateY(${-offsetY}px)`;
 
   spawn();
 }
@@ -96,9 +102,13 @@ function reset() {
   score = 0;
   speed = 2;
   direction = 1;
+  offsetY = 0;
   playing = true;
+
   scoreEl.textContent = "0";
+  stack.style.transform = "translateY(0)";
   overlay.classList.add("hidden");
+
   spawn();
   update();
 }
@@ -109,6 +119,19 @@ document.addEventListener("keydown", e => {
 });
 
 restartBtn.onclick = reset;
+
+// Dark / Light toggle
+toggle.onclick = () => {
+  const dark = root.getAttribute("data-theme") === "dark";
+  root.setAttribute("data-theme", dark ? "light" : "dark");
+  toggle.textContent = dark ? "Dark" : "Light";
+};
+
+// system default
+if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  root.setAttribute("data-theme", "dark");
+  toggle.textContent = "Light";
+}
 
 spawn();
 update();
