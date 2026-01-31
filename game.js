@@ -7,14 +7,14 @@ const root = document.documentElement;
 
 const BLOCK_HEIGHT = 28;
 
-let blocks;
-let current;
-let direction;
-let speed;
-let score;
-let playing;
-let offsetY;
-let initialized;
+let blocks = [];
+let current = null;
+let direction = 1;
+let speed = 2;
+let score = 0;
+let playing = false;
+let offsetY = 0;
+let inputEnabled = false;
 
 function gameWidth() {
   return stack.clientWidth;
@@ -24,6 +24,7 @@ function createBlock(width, y) {
   const el = document.createElement("div");
   el.className = "block";
   el.style.width = width + "px";
+  el.style.left = (gameWidth() - width) / 2 + "px";
   el.style.bottom = y + "px";
   stack.appendChild(el);
   return el;
@@ -41,7 +42,7 @@ function spawn() {
 }
 
 function update() {
-  if (!playing) return;
+  if (!playing || !current) return;
 
   current.x += speed * direction;
 
@@ -55,7 +56,9 @@ function update() {
 }
 
 function drop() {
-  if (!playing || !initialized || !current) return;
+  if (!playing || !inputEnabled || overlay.classList.contains("hidden") === false) {
+    return;
+  }
 
   if (!blocks.length) {
     blocks.push({ ...current });
@@ -100,6 +103,7 @@ function drop() {
 
 function end() {
   playing = false;
+  inputEnabled = false;
   overlay.classList.remove("hidden");
 }
 
@@ -110,17 +114,22 @@ function reset() {
   direction = 1;
   speed = 2;
   score = 0;
-  playing = true;
   offsetY = 0;
-  initialized = false;
 
   scoreEl.textContent = "0";
   stack.style.transform = "translateY(0)";
   overlay.classList.add("hidden");
 
+  playing = true;
+  inputEnabled = false;
+
   spawn();
-  initialized = true;
   update();
+
+  // enable input only after first frame
+  requestAnimationFrame(() => {
+    inputEnabled = true;
+  });
 }
 
 /* INPUT */
@@ -146,5 +155,5 @@ toggle.onclick = () => {
   toggle.textContent = isDark ? "Dark" : "Light";
 };
 
-/* START */
+/* START GAME */
 reset();
